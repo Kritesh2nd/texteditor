@@ -3,25 +3,215 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Data</title>
-    <link rel="stylesheet" href="style.css" />
+    <!-- <link rel="stylesheet" href="style.css" /> -->
     <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Roboto", sans-serif;
+      }
+      *:focus {
+        outline: none;
+      }
+
+      .mainbody {
+        height: 100vh;
+      }
+      .flexcol {
+        display: flex;
+        flex-direction: column;
+      }
+      .flex {
+        display: flex;
+      }
+      .plr50 {
+        padding: 0 50px;
+      }
+      .ptb20 {
+        padding: 20px 0;
+      }
+      .pb20 {
+        padding-bottom: 20px;
+      }
+      .mb10 {
+        margin-bottom: 10px;
+      }
+      .gap20 {
+        gap: 20px;
+      }
+      .header {
+        padding: 20px 50px;
+      }
+      .editorButtonBox {
+        overflow: auto;
+      }
+      .btn {
+        padding: 5px 20px;
+        border: 1px solid #000;
+        cursor: pointer;
+        border-radius: 2px;
+        transition: 0.3s;
+      }
+      .btn:hover {
+        background: #ccc;
+      }
       textarea {
+        border: 1px solid #000;
+        border-radius: 2px;
         width: 100%;
         height: 500px;
         padding: 10px;
         resize: none;
+        display: none;
+      }
+      .textareaCss {
+        border: 1px solid #000;
+        border-radius: 2px;
+        width: 100%;
+        height: 500px;
+        padding: 10px;
+        resize: none;
+        display: none;
       }
     </style>
   </head>
   <body>
-    <div class="mainbody borr">
-      <h3 class="plr50 ptb20">Text Editor</h3>
-      <div class="flex gap20 plr50 pb20 bor">
-        <div class="editorButtonBox flex gap20 borb"></div>
-        <div class="editorEditButtonBox flex gap20 borr"></div>
+    <div class="mainbody bor">
+      <h3 class="header">Offline Text Editor</h3>
+      <div class="flexcol plr50 pb20 bor">
+        <div class="editorButtonBox flex gap20 mb10"></div>
+        <div class="editorEditButtonBox flex gap20 mb10">
+          <div class="btn addEditor" onClick="addItem()">Add Editor</div>
+          <div class="btn removeEditor" onClick="removeItem()">
+            Remove Editor
+          </div>
+        </div>
+        <div class="textareaBox bor ptb20"></div>
       </div>
-      <div class="textareaBox plr50 bor"></div>
     </div>
-    <script src="script.js"></script>
+    <script>
+      var editorButtonBox = document.querySelector(".editorButtonBox");
+      var addEditor = document.querySelector(".addEditor");
+      var removeEditor = document.querySelector(".removeEditor");
+      var textareaBox = document.querySelector(".textareaBox");
+
+      var mainArray = [],
+        editorButtonArray = [],
+        textareaArray = [],
+        textareaDataArray = [];
+
+      var saveData = {
+        count: 5,
+        selected: 0,
+        textareaData: [],
+      };
+
+      const addItem = () => {
+        var data = {
+          id: mainArray.length < 1 ? 0 : mainArray[mainArray.length - 1].id + 1,
+          content: "",
+          visible: true,
+        };
+        console.log(data);
+        saveData.count++;
+        mainArray.push(data);
+        saveDataInLocalStorage();
+        handelDataArray();
+        activeTextarea(mainArray.length < 1 ? 0 : mainArray.length - 1);
+      };
+
+      const removeItem = () => {
+        const selectedItem = saveData.selected;
+        mainArray.splice(selectedItem, 1);
+        saveData.count--;
+        saveData.selected = 0;
+        manageDataArray();
+        activeTextarea(0);
+      };
+
+      const manageDataArray = () => {
+        editorButtonBox.innerHTML = "";
+        textareaBox.innerHTML = "";
+        mainArray.forEach((item, index) => {
+          const constIndex = index;
+          drawBoxes(item, constIndex);
+        });
+      };
+
+      const handelDataArray = () => {
+        for (var a = 0; a < saveData.count; a++) {
+          var data = {
+            id: a,
+            content: a + 1,
+            visible: true,
+          };
+          mainArray.push(data);
+        }
+        loadSaveDataFromLocalStorage();
+        manageDataArray();
+        activeTextarea(saveData.selected);
+      };
+
+      const drawBoxes = (item, index) => {
+        drawEditorButton(index);
+        drawTextarea(index, item);
+      };
+
+      const drawEditorButton = (id) => {
+        editorButtonArray[id] = document.createElement("div");
+        editorButtonArray[id].innerText = "Editor " + (id + 1);
+        editorButtonArray[id].classList.add("btn");
+        editorButtonArray[id].addEventListener("click", () => {
+          activeTextarea(id);
+        });
+        editorButtonBox.appendChild(editorButtonArray[id]);
+      };
+      const drawTextarea = (id, item) => {
+        textareaArray[id] = document.createElement("textarea");
+        textareaArray[id].innerText = item.content;
+        textareaArray[id].placeholder = "textarea " + (id + 1) + "...";
+        textareaArray[id].classList.add("textareaCss");
+
+        textareaArray[id].addEventListener("input", () => {
+          textareaInput(id);
+        });
+        textareaBox.appendChild(textareaArray[id]);
+      };
+
+      const activeTextarea = (id) => {
+        for (var a = 0; a < saveData.count; a++) {
+          editorButtonArray[a].style.background = "#fff";
+          textareaArray[a].style.display = "none";
+        }
+        if (saveData.count > 0) {
+          editorButtonArray[id].style.background = "#ccc";
+          textareaArray[id].style.display = "block";
+          saveData.selected = id;
+        }
+        saveDataInLocalStorage();
+      };
+
+      const textareaInput = (id) => {
+        mainArray[id].content = textareaArray[id].value;
+        saveDataInLocalStorage();
+      };
+
+      const saveDataInLocalStorage = () => {
+        saveData.textareaData = mainArray;
+        localStorage.setItem("saveData", JSON.stringify(saveData));
+      };
+
+      const loadSaveDataFromLocalStorage = () => {
+        const savedDataTemp = localStorage.getItem("saveData");
+        if (savedDataTemp) {
+          const savedDataParse = JSON.parse(savedDataTemp);
+          saveData = savedDataParse;
+          mainArray = savedDataParse.textareaData;
+        }
+      };
+
+      handelDataArray();
+    </script>
   </body>
 </html>
